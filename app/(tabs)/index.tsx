@@ -1,0 +1,672 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import {
+  Plane,
+  Calendar,
+  MapPin,
+  Plus,
+  Hotel,
+  Car,
+  Coffee,
+  Bell,
+  AlertTriangle,
+  Clock,
+  Users,
+  Zap,
+} from 'lucide-react-native';
+
+import Colors from '@/constants/colors';
+
+interface Trip {
+  id: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  status: 'upcoming' | 'current' | 'completed';
+  flightNumber?: string;
+  hotel?: string;
+  purpose: string;
+  imageUrl: string;
+  hasNotifications?: boolean;
+  meetings?: Meeting[];
+  itinerary?: ItineraryItem[];
+}
+
+interface Meeting {
+  id: string;
+  title: string;
+  time: string;
+  attendees: number;
+}
+
+interface ItineraryItem {
+  id: string;
+  time: string;
+  title: string;
+  type: 'flight' | 'meeting' | 'hotel' | 'transport' | 'meal';
+  location?: string;
+}
+
+const tripStatuses = [
+  { key: 'upcoming' as const, label: 'Upcoming', count: 2 },
+  { key: 'current' as const, label: 'Current', count: 1 },
+  { key: 'completed' as const, label: 'Completed', count: 5 },
+];
+
+export default function TripsScreen() {
+  const [selectedStatus, setSelectedStatus] = useState<Trip['status']>('upcoming');
+  
+  const [trips] = useState<Trip[]>([
+    {
+      id: '1',
+      destination: 'New York, NY',
+      startDate: '2024-02-15',
+      endDate: '2024-02-18',
+      status: 'upcoming',
+      flightNumber: 'AA 1234',
+      hotel: 'Manhattan Business Hotel',
+      purpose: 'Client Meeting',
+      imageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=200&fit=crop',
+      hasNotifications: false,
+      meetings: [
+        { id: '1', title: 'Client Presentation', time: '10:00 AM', attendees: 5 },
+        { id: '2', title: 'Strategy Discussion', time: '2:00 PM', attendees: 3 },
+      ],
+      itinerary: [
+        { id: '1', time: '8:00 AM', title: 'Flight Departure', type: 'flight', location: 'LAX Airport' },
+        { id: '2', time: '4:00 PM', title: 'Hotel Check-in', type: 'hotel', location: 'Manhattan Business Hotel' },
+        { id: '3', time: '7:00 PM', title: 'Welcome Dinner', type: 'meal', location: 'The Plaza Restaurant' },
+      ],
+    },
+    {
+      id: '2',
+      destination: 'San Francisco, CA',
+      startDate: '2024-01-20',
+      endDate: '2024-01-23',
+      status: 'current',
+      flightNumber: 'UA 5678',
+      hotel: 'Tech Hub Hotel',
+      purpose: 'Conference',
+      imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+      hasNotifications: true,
+      meetings: [
+        { id: '1', title: 'Keynote Speech', time: '9:00 AM', attendees: 200 },
+        { id: '2', title: 'Panel Discussion', time: '2:00 PM', attendees: 50 },
+      ],
+      itinerary: [
+        { id: '1', time: '9:00 AM', title: 'Conference Opening', type: 'meeting', location: 'Main Hall' },
+        { id: '2', time: '12:00 PM', title: 'Networking Lunch', type: 'meal', location: 'Conference Center' },
+        { id: '3', time: '6:00 PM', title: 'Return Flight', type: 'flight', location: 'SFO Airport' },
+      ],
+    },
+    {
+      id: '3',
+      destination: 'Chicago, IL',
+      startDate: '2024-01-10',
+      endDate: '2024-01-12',
+      status: 'completed',
+      flightNumber: 'DL 9012',
+      hotel: 'Downtown Business Center',
+      purpose: 'Training',
+      imageUrl: 'https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?w=400&h=200&fit=crop',
+      hasNotifications: false,
+      meetings: [
+        { id: '1', title: 'Training Workshop', time: '9:00 AM', attendees: 15 },
+        { id: '2', title: 'Team Building', time: '3:00 PM', attendees: 12 },
+      ],
+    },
+  ]);
+
+  const filteredTrips = trips.filter(trip => trip.status === selectedStatus);
+  const currentTrip = trips.find(trip => trip.status === 'current');
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getDaysUntil = (dateString: string) => {
+    const today = new Date();
+    const tripDate = new Date(dateString);
+    const diffTime = tripDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.title}>Traveho</Text>
+            <Text style={styles.subtitle}>Your business travel companion</Text>
+          </View>
+          <TouchableOpacity style={styles.notificationButton}>
+            <Bell size={24} color={Colors.light.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {currentTrip && (
+          <View style={styles.currentTripCard}>
+            <View style={styles.currentTripHeader}>
+              <Text style={styles.currentTripTitle}>Current Trip</Text>
+              <View style={styles.headerActions}>
+                {currentTrip.hasNotifications && (
+                  <View style={styles.notificationBadge}>
+                    <AlertTriangle size={16} color={Colors.light.danger} />
+                    <Text style={styles.notificationText}>Flight Alert</Text>
+                  </View>
+                )}
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>Live</Text>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.currentTripDestination}>{currentTrip.destination}</Text>
+            <Text style={styles.currentTripDates}>
+              {formatDate(currentTrip.startDate)} - {formatDate(currentTrip.endDate)}
+            </Text>
+            
+            {currentTrip.itinerary && currentTrip.itinerary.length > 0 && (
+              <View style={styles.nextActivity}>
+                <Clock size={16} color={Colors.light.background} />
+                <Text style={styles.nextActivityText}>
+                  Next: {currentTrip.itinerary[0].title} at {currentTrip.itinerary[0].time}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.statusTabs}>
+        {tripStatuses.map((status) => (
+          <TouchableOpacity
+            key={status.key}
+            style={[
+              styles.statusTab,
+              selectedStatus === status.key && styles.statusTabActive
+            ]}
+            onPress={() => setSelectedStatus(status.key)}
+          >
+            <Text style={[
+              styles.statusTabText,
+              selectedStatus === status.key && styles.statusTabTextActive
+            ]}>
+              {status.label}
+            </Text>
+            <View style={[
+              styles.statusBadge,
+              selectedStatus === status.key && styles.statusBadgeActive
+            ]}>
+              <Text style={[
+                styles.statusBadgeText,
+                selectedStatus === status.key && styles.statusBadgeTextActive
+              ]}>
+                {status.count}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {selectedStatus === 'upcoming' && (
+          <View style={styles.quickActions}>
+            <Text style={styles.sectionTitle}>Quick Book</Text>
+            <View style={styles.actionGrid}>
+              <TouchableOpacity style={styles.actionCard}>
+                <Plane size={24} color={Colors.light.primary} />
+                <Text style={styles.actionText}>Flight</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionCard}>
+                <Hotel size={24} color={Colors.light.accent} />
+                <Text style={styles.actionText}>Hotel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionCard}>
+                <Car size={24} color={Colors.light.success} />
+                <Text style={styles.actionText}>Taxi</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionCard}>
+                <Coffee size={24} color={Colors.light.danger} />
+                <Text style={styles.actionText}>Lounge</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.aiSection}>
+              <View style={styles.aiHeader}>
+                <Zap size={20} color={Colors.light.accent} />
+                <Text style={styles.aiTitle}>AI Assistant</Text>
+              </View>
+              <Text style={styles.aiDescription}>
+                Get smart recommendations for your trip based on weather, traffic, and local events.
+              </Text>
+              <TouchableOpacity style={styles.aiButton}>
+                <Text style={styles.aiButtonText}>Get AI Suggestions</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.tripsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {tripStatuses.find(s => s.key === selectedStatus)?.label} Trips
+            </Text>
+            <TouchableOpacity>
+              <Plus size={24} color={Colors.light.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {filteredTrips.map((trip) => (
+            <TouchableOpacity key={trip.id} style={styles.tripCard}>
+              <Image source={{ uri: trip.imageUrl }} style={styles.tripImage} />
+              <View style={styles.tripContent}>
+                <View style={styles.tripHeader}>
+                  <Text style={styles.tripDestination}>{trip.destination}</Text>
+                  <View style={styles.tripHeaderRight}>
+                    {trip.hasNotifications && (
+                      <View style={styles.alertBadge}>
+                        <AlertTriangle size={12} color={Colors.light.danger} />
+                      </View>
+                    )}
+                    {trip.status === 'upcoming' && (
+                      <Text style={styles.tripCountdown}>
+                        {getDaysUntil(trip.startDate)} days
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                
+                <View style={styles.tripDetails}>
+                  <View style={styles.tripDetail}>
+                    <Calendar size={16} color={Colors.light.gray} />
+                    <Text style={styles.tripDetailText}>
+                      {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+                    </Text>
+                  </View>
+                  
+                  {trip.flightNumber && (
+                    <View style={styles.tripDetail}>
+                      <Plane size={16} color={Colors.light.gray} />
+                      <Text style={styles.tripDetailText}>{trip.flightNumber}</Text>
+                    </View>
+                  )}
+                  
+                  <View style={styles.tripDetail}>
+                    <MapPin size={16} color={Colors.light.gray} />
+                    <Text style={styles.tripDetailText}>{trip.purpose}</Text>
+                  </View>
+                  
+                  {trip.meetings && trip.meetings.length > 0 && (
+                    <View style={styles.tripDetail}>
+                      <Users size={16} color={Colors.light.gray} />
+                      <Text style={styles.tripDetailText}>
+                        {trip.meetings.length} meetings scheduled
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                
+                {trip.status === 'current' && trip.itinerary && (
+                  <View style={styles.itineraryPreview}>
+                    <Text style={styles.itineraryTitle}>Today's Schedule</Text>
+                    {trip.itinerary.slice(0, 2).map((item) => (
+                      <View key={item.id} style={styles.itineraryItem}>
+                        <Text style={styles.itineraryTime}>{item.time}</Text>
+                        <Text style={styles.itineraryItemTitle}>{item.title}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.backgroundSecondary,
+  },
+  header: {
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.light.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentTripCard: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: 16,
+    padding: 20,
+  },
+  currentTripHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  notificationText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.light.danger,
+  },
+  currentTripTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.background,
+    opacity: 0.9,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.light.success,
+  },
+  liveText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.light.primary,
+  },
+  currentTripDestination: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.light.background,
+    marginBottom: 4,
+  },
+  currentTripDates: {
+    fontSize: 14,
+    color: Colors.light.background,
+    opacity: 0.9,
+    marginBottom: 12,
+  },
+  nextActivity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  nextActivityText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.background,
+  },
+  statusTabs: {
+    flexDirection: 'row',
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  statusTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.light.backgroundSecondary,
+    gap: 8,
+  },
+  statusTabActive: {
+    backgroundColor: Colors.light.primary,
+  },
+  statusTabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.text,
+  },
+  statusTabTextActive: {
+    color: Colors.light.background,
+  },
+  statusBadge: {
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  statusBadgeActive: {
+    backgroundColor: Colors.light.background,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  statusBadgeTextActive: {
+    color: Colors.light.primary,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  quickActions: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 16,
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.text,
+  },
+  aiSection: {
+    marginTop: 24,
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  aiTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  aiDescription: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  aiButton: {
+    backgroundColor: Colors.light.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  aiButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.background,
+  },
+  tripsSection: {
+    marginTop: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tripCard: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  tripImage: {
+    width: '100%',
+    height: 120,
+    resizeMode: 'cover',
+  },
+  tripContent: {
+    padding: 16,
+  },
+  tripHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tripHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertBadge: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    padding: 4,
+    borderRadius: 12,
+  },
+  tripDestination: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  tripCountdown: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.accent,
+    backgroundColor: Colors.light.backgroundSecondary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  tripDetails: {
+    gap: 8,
+  },
+  tripDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tripDetailText: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  itineraryPreview: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+  },
+  itineraryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  itineraryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  itineraryTime: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.light.primary,
+    width: 60,
+  },
+  itineraryItemTitle: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    flex: 1,
+  },
+});
