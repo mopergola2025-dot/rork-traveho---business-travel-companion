@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Linking,
 } from 'react-native';
 import {
   Plane,
@@ -198,6 +199,22 @@ export default function TripsScreen() {
     });
   };
 
+  const handleFlightBooking = async () => {
+    try {
+      const url = 'https://www.trip.com/flights/';
+      const supported = await Linking.canOpenURL(url);
+      
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open Trip.com. Please check if you have a web browser installed.');
+      }
+    } catch (error) {
+      console.error('Error opening Trip.com:', error);
+      Alert.alert('Error', 'Failed to open Trip.com');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -281,7 +298,7 @@ export default function TripsScreen() {
           <View style={styles.quickActions}>
             <Text style={styles.sectionTitle}>Quick Book</Text>
             <View style={styles.actionGrid}>
-              <TouchableOpacity style={styles.actionCard}>
+              <TouchableOpacity style={styles.actionCard} onPress={handleFlightBooking}>
                 <Plane size={24} color={Colors.light.primary} />
                 <Text style={styles.actionText}>Flight</Text>
               </TouchableOpacity>
