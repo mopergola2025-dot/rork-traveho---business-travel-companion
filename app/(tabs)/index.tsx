@@ -6,6 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import {
   Plane,
@@ -20,6 +23,7 @@ import {
   Clock,
   Users,
   Zap,
+  X,
 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
@@ -62,8 +66,17 @@ const tripStatuses = [
 
 export default function TripsScreen() {
   const [selectedStatus, setSelectedStatus] = useState<Trip['status']>('upcoming');
+  const [showAddTripModal, setShowAddTripModal] = useState<boolean>(false);
+  const [newTrip, setNewTrip] = useState({
+    destination: '',
+    startDate: '',
+    endDate: '',
+    purpose: '',
+    flightNumber: '',
+    hotel: '',
+  });
   
-  const [trips] = useState<Trip[]>([
+  const [trips, setTrips] = useState<Trip[]>([
     {
       id: '1',
       destination: 'New York, NY',
@@ -140,6 +153,49 @@ export default function TripsScreen() {
     const diffTime = tripDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const handleAddTrip = () => {
+    if (!newTrip.destination || !newTrip.startDate || !newTrip.endDate || !newTrip.purpose) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    const trip: Trip = {
+      id: Date.now().toString(),
+      destination: newTrip.destination,
+      startDate: newTrip.startDate,
+      endDate: newTrip.endDate,
+      status: 'upcoming',
+      purpose: newTrip.purpose,
+      flightNumber: newTrip.flightNumber || undefined,
+      hotel: newTrip.hotel || undefined,
+      imageUrl: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop',
+      hasNotifications: false,
+    };
+
+    setTrips(prevTrips => [...prevTrips, trip]);
+    setNewTrip({
+      destination: '',
+      startDate: '',
+      endDate: '',
+      purpose: '',
+      flightNumber: '',
+      hotel: '',
+    });
+    setShowAddTripModal(false);
+    Alert.alert('Success', 'Trip added successfully!');
+  };
+
+  const resetForm = () => {
+    setNewTrip({
+      destination: '',
+      startDate: '',
+      endDate: '',
+      purpose: '',
+      flightNumber: '',
+      hotel: '',
+    });
   };
 
   return (
@@ -263,8 +319,11 @@ export default function TripsScreen() {
             <Text style={styles.sectionTitle}>
               {tripStatuses.find(s => s.key === selectedStatus)?.label} Trips
             </Text>
-            <TouchableOpacity>
-              <Plus size={24} color={Colors.light.primary} />
+            <TouchableOpacity 
+              onPress={() => setShowAddTripModal(true)}
+              style={styles.addButton}
+            >
+              <Plus size={24} color={Colors.light.background} />
             </TouchableOpacity>
           </View>
 
@@ -334,6 +393,102 @@ export default function TripsScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showAddTripModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {
+          resetForm();
+          setShowAddTripModal(false);
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add New Trip</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                resetForm();
+                setShowAddTripModal(false);
+              }}
+              style={styles.closeButton}
+            >
+              <X size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Destination *</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g., New York, NY"
+                value={newTrip.destination}
+                onChangeText={(text) => setNewTrip(prev => ({ ...prev, destination: text }))}
+              />
+            </View>
+
+            <View style={styles.formRow}>
+              <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                <Text style={styles.formLabel}>Start Date *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="YYYY-MM-DD"
+                  value={newTrip.startDate}
+                  onChangeText={(text) => setNewTrip(prev => ({ ...prev, startDate: text }))}
+                />
+              </View>
+              <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                <Text style={styles.formLabel}>End Date *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="YYYY-MM-DD"
+                  value={newTrip.endDate}
+                  onChangeText={(text) => setNewTrip(prev => ({ ...prev, endDate: text }))}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Purpose *</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g., Client Meeting, Conference, Training"
+                value={newTrip.purpose}
+                onChangeText={(text) => setNewTrip(prev => ({ ...prev, purpose: text }))}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Flight Number</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g., AA 1234"
+                value={newTrip.flightNumber}
+                onChangeText={(text) => setNewTrip(prev => ({ ...prev, flightNumber: text }))}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Hotel</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g., Manhattan Business Hotel"
+                value={newTrip.hotel}
+                onChangeText={(text) => setNewTrip(prev => ({ ...prev, hotel: text }))}
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={styles.addTripButton}
+              onPress={handleAddTrip}
+            >
+              <Plus size={20} color={Colors.light.background} />
+              <Text style={styles.addTripButtonText}>Add Trip</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -668,5 +823,84 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.textSecondary,
     flex: 1,
+  },
+  addButton: {
+    backgroundColor: Colors.light.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.backgroundSecondary,
+  },
+  addTripButton: {
+    backgroundColor: Colors.light.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 20,
+    marginBottom: 40,
+    gap: 8,
+  },
+  addTripButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.background,
   },
 });
