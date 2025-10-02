@@ -12,18 +12,20 @@ import {
   Platform,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import {
   Receipt,
   Plus,
   Camera,
   DollarSign,
   TrendingUp,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
   X,
   CheckSquare,
   Square,
+  FileText,
 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
@@ -42,6 +44,14 @@ interface ScannedReceipt {
   id: string;
   date: string;
   imageUri?: string;
+}
+
+interface Trip {
+  id: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  status: 'upcoming' | 'current' | 'completed';
 }
 
 const categories = [
@@ -95,7 +105,10 @@ export default function ExpensesScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [selectedTripForReport, setSelectedTripForReport] = useState<string | null>(null);
   const [newExpense, setNewExpense] = useState({
     title: '',
     amount: '',
@@ -110,6 +123,23 @@ export default function ExpensesScreen() {
     result: null as number | null,
     loading: false,
   });
+
+  const [trips] = useState<Trip[]>([
+    {
+      id: '1',
+      destination: 'New York, NY',
+      startDate: '2025-10-15',
+      endDate: '2025-10-18',
+      status: 'upcoming',
+    },
+    {
+      id: '2',
+      destination: 'San Francisco, CA',
+      startDate: '2025-10-02',
+      endDate: '2025-10-05',
+      status: 'current',
+    },
+  ]);
 
   const popularCurrencies = [
     { code: 'USD', name: 'US Dollar', symbol: '$' },
@@ -241,6 +271,274 @@ export default function ExpensesScreen() {
     });
   };
 
+  const handleOpenExpenseReport = () => {
+    setShowReportModal(true);
+  };
+
+  const generateExpenseReport = async () => {
+    if (!selectedTripForReport) {
+      Alert.alert('Error', 'Please select a trip');
+      return;
+    }
+
+    const selectedTrip = trips.find(t => t.id === selectedTripForReport);
+    if (!selectedTrip) {
+      Alert.alert('Error', 'Trip not found');
+      return;
+    }
+
+    setGeneratingReport(true);
+
+    try {
+      const tripExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        const tripStart = new Date(selectedTrip.startDate);
+        const tripEnd = new Date(selectedTrip.endDate);
+        return expenseDate >= tripStart && expenseDate <= tripEnd;
+      });
+
+      const tripTotal = tripExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+      const categoryTotals = categories.map(cat => {
+        const categoryExpenses = tripExpenses.filter(e => e.category === cat.key);
+        const total = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+        return {
+          category: cat.label,
+          total,
+          count: categoryExpenses.length,
+        };
+      }).filter(c => c.count > 0);
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              padding: 40px;
+              color: #1a1a1a;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 40px;
+              border-bottom: 3px solid #007AFF;
+              padding-bottom: 20px;
+            }
+            .header h1 {
+              color: #007AFF;
+              margin: 0 0 10px 0;
+              font-size: 32px;
+            }
+            .header p {
+              color: #666;
+              margin: 5px 0;
+              font-size: 16px;
+            }
+            .summary {
+              background: #f5f5f5;
+              padding: 20px;
+              border-radius: 12px;
+              margin-bottom: 30px;
+            }
+            .summary h2 {
+              margin: 0 0 15px 0;
+              color: #1a1a1a;
+              font-size: 20px;
+            }
+            .summary-item {
+              display: flex;
+              justify-content: space-between;
+              margin: 10px 0;
+              font-size: 16px;
+            }
+            .summary-item strong {
+              color: #1a1a1a;
+            }
+            .total {
+              font-size: 28px;
+              font-weight: bold;
+              color: #007AFF;
+              text-align: center;
+              margin: 20px 0;
+              padding: 20px;
+              background: white;
+              border-radius: 12px;
+            }
+            .section {
+              margin: 30px 0;
+            }
+            .section h3 {
+              color: #1a1a1a;
+              margin-bottom: 15px;
+              font-size: 18px;
+              border-bottom: 2px solid #e0e0e0;
+              padding-bottom: 10px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 15px;
+            }
+            th {
+              background: #007AFF;
+              color: white;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+            }
+            td {
+              padding: 12px;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            tr:hover {
+              background: #f9f9f9;
+            }
+            .category-summary {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+              margin-top: 20px;
+            }
+            .category-card {
+              background: white;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #e0e0e0;
+            }
+            .category-card h4 {
+              margin: 0 0 10px 0;
+              color: #007AFF;
+              font-size: 16px;
+            }
+            .category-card p {
+              margin: 5px 0;
+              color: #666;
+              font-size: 14px;
+            }
+            .footer {
+              margin-top: 50px;
+              text-align: center;
+              color: #999;
+              font-size: 12px;
+              border-top: 1px solid #e0e0e0;
+              padding-top: 20px;
+            }
+            .receipt-badge {
+              display: inline-block;
+              background: #34C759;
+              color: white;
+              padding: 2px 8px;
+              border-radius: 4px;
+              font-size: 12px;
+              margin-left: 8px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Expense Report</h1>
+            <p><strong>${selectedTrip.destination}</strong></p>
+            <p>${new Date(selectedTrip.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${new Date(selectedTrip.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            <p>Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
+
+          <div class="summary">
+            <h2>Trip Summary</h2>
+            <div class="summary-item">
+              <span>Destination:</span>
+              <strong>${selectedTrip.destination}</strong>
+            </div>
+            <div class="summary-item">
+              <span>Duration:</span>
+              <strong>${Math.ceil((new Date(selectedTrip.endDate).getTime() - new Date(selectedTrip.startDate).getTime()) / (1000 * 60 * 60 * 24))} days</strong>
+            </div>
+            <div class="summary-item">
+              <span>Total Expenses:</span>
+              <strong>${tripExpenses.length} items</strong>
+            </div>
+          </div>
+
+          <div class="total">
+            Total Amount: ${tripTotal.toFixed(2)}
+          </div>
+
+          ${categoryTotals.length > 0 ? `
+          <div class="section">
+            <h3>Expenses by Category</h3>
+            <div class="category-summary">
+              ${categoryTotals.map(cat => `
+                <div class="category-card">
+                  <h4>${cat.category}</h4>
+                  <p><strong>${cat.total.toFixed(2)}</strong></p>
+                  <p>${cat.count} expense${cat.count !== 1 ? 's' : ''}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <div class="section">
+            <h3>Detailed Expenses</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tripExpenses.map(expense => `
+                  <tr>
+                    <td>${new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                    <td>${expense.title}${expense.hasReceipt ? '<span class="receipt-badge">Receipt</span>' : ''}</td>
+                    <td>${categories.find(c => c.key === expense.category)?.label || expense.category}</td>
+                    <td><strong>${expense.amount.toFixed(2)}</strong></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            <p>This report was generated automatically by Traveho</p>
+            <p>Business Travel Expense Management System</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      console.log('PDF generated at:', uri);
+
+      if (Platform.OS === 'web') {
+        Alert.alert('Success', 'Report generated! Check your downloads folder.');
+      } else {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Expense Report - ${selectedTrip.destination}`,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Success', 'Report generated successfully!');
+        }
+      }
+
+      setShowReportModal(false);
+      setSelectedTripForReport(null);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      Alert.alert('Error', 'Failed to generate expense report');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -306,7 +604,7 @@ export default function ExpensesScreen() {
             <View style={styles.emptyState}>
               <Receipt size={48} color={Colors.light.textSecondary} />
               <Text style={styles.emptyStateText}>No scanned receipts yet</Text>
-              <Text style={styles.emptyStateSubtext}>Tap "Scan Receipt" to add one</Text>
+              <Text style={styles.emptyStateSubtext}>Tap &quot;Scan Receipt&quot; to add one</Text>
             </View>
           ) : (
             scannedReceipts.map((receipt) => (
@@ -342,9 +640,9 @@ export default function ExpensesScreen() {
             <ArrowUpRight size={20} color={Colors.light.gray} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={handleOpenExpenseReport}>
             <View style={styles.actionIcon}>
-              <Calendar size={24} color={Colors.light.primary} />
+              <FileText size={24} color={Colors.light.primary} />
             </View>
             <View style={styles.actionInfo}>
               <Text style={styles.actionTitle}>Expense Report</Text>
@@ -604,6 +902,89 @@ export default function ExpensesScreen() {
               </View>
             </View>
           </CameraView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showReportModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Generate Expense Report</Text>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <X size={24} color={Colors.light.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Trip</Text>
+              <Text style={styles.inputHint}>
+                Choose a trip to generate an expense report
+              </Text>
+              
+              <View style={styles.tripsList}>
+                {trips.map((trip) => (
+                  <TouchableOpacity
+                    key={trip.id}
+                    style={[
+                      styles.tripOption,
+                      selectedTripForReport === trip.id && styles.tripOptionSelected,
+                    ]}
+                    onPress={() => setSelectedTripForReport(trip.id)}
+                  >
+                    <View style={styles.tripOptionLeft}>
+                      <View style={[
+                        styles.tripRadio,
+                        selectedTripForReport === trip.id && styles.tripRadioSelected,
+                      ]}>
+                        {selectedTripForReport === trip.id && (
+                          <View style={styles.tripRadioDot} />
+                        )}
+                      </View>
+                      <View style={styles.tripOptionInfo}>
+                        <Text style={styles.tripOptionTitle}>{trip.destination}</Text>
+                        <Text style={styles.tripOptionDate}>
+                          {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[
+                      styles.tripStatusBadge,
+                      trip.status === 'current' && styles.tripStatusBadgeCurrent,
+                      trip.status === 'upcoming' && styles.tripStatusBadgeUpcoming,
+                    ]}>
+                      <Text style={[
+                        styles.tripStatusText,
+                        trip.status === 'current' && styles.tripStatusTextCurrent,
+                        trip.status === 'upcoming' && styles.tripStatusTextUpcoming,
+                      ]}>
+                        {trip.status === 'current' ? 'Current' : 'Upcoming'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.saveButton, (generatingReport || !selectedTripForReport) && styles.saveButtonDisabled]} 
+              onPress={generateExpenseReport}
+              disabled={generatingReport || !selectedTripForReport}
+            >
+              {generatingReport ? (
+                <ActivityIndicator color={Colors.light.background} />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <FileText size={20} color={Colors.light.background} />
+                  <Text style={styles.saveButtonText}>Generate PDF Report</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -1067,5 +1448,87 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 16,
     color: Colors.light.text,
+  },
+  inputHint: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    marginBottom: 16,
+  },
+  tripsList: {
+    gap: 12,
+  },
+  tripOption: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  tripOptionSelected: {
+    borderColor: Colors.light.primary,
+    backgroundColor: Colors.light.background,
+  },
+  tripOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  tripRadio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tripRadioSelected: {
+    borderColor: Colors.light.primary,
+  },
+  tripRadioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.light.primary,
+  },
+  tripOptionInfo: {
+    flex: 1,
+  },
+  tripOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  tripOptionDate: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  tripStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: Colors.light.backgroundSecondary,
+  },
+  tripStatusBadgeCurrent: {
+    backgroundColor: Colors.light.success,
+  },
+  tripStatusBadgeUpcoming: {
+    backgroundColor: Colors.light.accent,
+  },
+  tripStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  tripStatusTextCurrent: {
+    color: Colors.light.background,
+  },
+  tripStatusTextUpcoming: {
+    color: Colors.light.background,
   },
 });
