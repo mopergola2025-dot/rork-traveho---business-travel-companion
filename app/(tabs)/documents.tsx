@@ -42,11 +42,13 @@ import { useTravelFriends } from '@/contexts/TravelFriendsContext';
 interface Document {
   id: string;
   name: string;
-  type: 'passport' | 'visa' | 'boarding' | 'insurance' | 'vaccination' | 'other';
+  type: 'flight' | 'hotel' | 'passport' | 'visa' | 'boarding' | 'insurance' | 'vaccination' | 'other';
   uploadDate: string;
 }
 
 const documentTypes = [
+  { type: 'flight' as const, label: 'Flight Tickets', icon: Plane },
+  { type: 'hotel' as const, label: 'Hotel Bookings', icon: FileText },
   { type: 'passport' as const, label: 'Passport Copy', icon: FileText },
   { type: 'visa' as const, label: 'Visa Documents', icon: FileText },
   { type: 'boarding' as const, label: 'Boarding Pass', icon: Plane },
