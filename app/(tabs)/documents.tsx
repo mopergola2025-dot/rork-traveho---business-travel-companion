@@ -34,11 +34,14 @@ import {
   X,
   UserPlus,
   Check,
+  QrCode,
+  Upload,
 } from 'lucide-react-native';
 import { Calendar as RNCalendar } from 'react-native-calendars';
 
 import Colors from '@/constants/colors';
 import { useTravelFriends } from '@/contexts/TravelFriendsContext';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
 
 interface Document {
   id: string;
@@ -93,6 +96,16 @@ interface TodoItem {
   category: 'meeting' | 'document' | 'travel' | 'general';
 }
 
+interface MyBusinessCard {
+  name: string;
+  company: string;
+  position: string;
+  email: string;
+  phone: string;
+  website?: string;
+  address?: string;
+}
+
 export default function DocumentsScreen() {
   const { connectedFriends, getFriendsByIds } = useTravelFriends();
   const [activeTab, setActiveTab] = useState<'documents' | 'meetings' | 'cards' | 'todos'>('documents');
@@ -108,6 +121,26 @@ export default function DocumentsScreen() {
   const [newTodoPriority, setNewTodoPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [newTodoCategory, setNewTodoCategory] = useState<'meeting' | 'document' | 'travel' | 'general'>('general');
   const [newTodoDueDate, setNewTodoDueDate] = useState<string>('');
+  const [showMyCard, setShowMyCard] = useState<boolean>(false);
+  const [showEditMyCard, setShowEditMyCard] = useState<boolean>(false);
+  
+  const [myBusinessCard, setMyBusinessCard] = useState<MyBusinessCard>({
+    name: 'John Doe',
+    company: 'Tech Solutions Inc.',
+    position: 'Senior Product Manager',
+    email: 'john.doe@techsolutions.com',
+    phone: '+1-555-0789',
+    website: 'www.techsolutions.com',
+    address: 'San Francisco, CA',
+  });
+  
+  const [editCardName, setEditCardName] = useState<string>(myBusinessCard.name);
+  const [editCardCompany, setEditCardCompany] = useState<string>(myBusinessCard.company);
+  const [editCardPosition, setEditCardPosition] = useState<string>(myBusinessCard.position);
+  const [editCardEmail, setEditCardEmail] = useState<string>(myBusinessCard.email);
+  const [editCardPhone, setEditCardPhone] = useState<string>(myBusinessCard.phone);
+  const [editCardWebsite, setEditCardWebsite] = useState<string>(myBusinessCard.website || '');
+  const [editCardAddress, setEditCardAddress] = useState<string>(myBusinessCard.address || '');
   
   // New meeting form state
   const [newMeetingTitle, setNewMeetingTitle] = useState<string>('');
@@ -592,6 +625,59 @@ export default function DocumentsScreen() {
     return `${selectedFriends.slice(0, 2).map(f => f.name).join(', ')} +${selectedFriends.length - 2} more`;
   };
 
+  const getBusinessCardQRValue = () => {
+    return JSON.stringify({
+      type: 'vcard',
+      name: myBusinessCard.name,
+      company: myBusinessCard.company,
+      position: myBusinessCard.position,
+      email: myBusinessCard.email,
+      phone: myBusinessCard.phone,
+      website: myBusinessCard.website,
+      address: myBusinessCard.address,
+    });
+  };
+
+  const handleSaveMyCard = () => {
+    setMyBusinessCard({
+      name: editCardName,
+      company: editCardCompany,
+      position: editCardPosition,
+      email: editCardEmail,
+      phone: editCardPhone,
+      website: editCardWebsite,
+      address: editCardAddress,
+    });
+    setShowEditMyCard(false);
+    Alert.alert('Success', 'Your business card has been updated!');
+  };
+
+  const handleImportCard = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        console.log('QR Code image imported:', result.assets[0].uri);
+        Alert.alert(
+          'Success',
+          'QR Code imported successfully! Processing...',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error importing QR code:', error);
+      Alert.alert(
+        'Error',
+        'Failed to import QR code. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -635,6 +721,188 @@ export default function DocumentsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.myBusinessCardSection}>
+          <View style={styles.myCardHeader}>
+            <View style={styles.myCardHeaderLeft}>
+              <QrCode size={24} color={Colors.light.primary} />
+              <Text style={styles.myCardTitle}>My Virtual Business Card</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.toggleCardButton}
+              onPress={() => setShowMyCard(!showMyCard)}
+            >
+              <Text style={styles.toggleCardButtonText}>
+                {showMyCard ? 'Hide' : 'Show'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {showMyCard && (
+            <View style={styles.myCardContent}>
+              <View style={styles.qrCodeContainer}>
+                <QRCodeGenerator 
+                  value={getBusinessCardQRValue()} 
+                  size={180}
+                  backgroundColor={Colors.light.background}
+                  color={Colors.light.text}
+                />
+              </View>
+              
+              <View style={styles.cardInfoContainer}>
+                <Text style={styles.cardInfoName}>{myBusinessCard.name}</Text>
+                <Text style={styles.cardInfoPosition}>{myBusinessCard.position}</Text>
+                <Text style={styles.cardInfoCompany}>{myBusinessCard.company}</Text>
+                <View style={styles.cardInfoDivider} />
+                <Text style={styles.cardInfoDetail}>{myBusinessCard.email}</Text>
+                <Text style={styles.cardInfoDetail}>{myBusinessCard.phone}</Text>
+                {myBusinessCard.website && (
+                  <Text style={styles.cardInfoDetail}>{myBusinessCard.website}</Text>
+                )}
+                {myBusinessCard.address && (
+                  <Text style={styles.cardInfoDetail}>{myBusinessCard.address}</Text>
+                )}
+              </View>
+              
+              <View style={styles.myCardActions}>
+                <TouchableOpacity 
+                  style={styles.editMyCardButton}
+                  onPress={() => {
+                    setEditCardName(myBusinessCard.name);
+                    setEditCardCompany(myBusinessCard.company);
+                    setEditCardPosition(myBusinessCard.position);
+                    setEditCardEmail(myBusinessCard.email);
+                    setEditCardPhone(myBusinessCard.phone);
+                    setEditCardWebsite(myBusinessCard.website || '');
+                    setEditCardAddress(myBusinessCard.address || '');
+                    setShowEditMyCard(true);
+                  }}
+                >
+                  <Edit3 size={16} color={Colors.light.background} />
+                  <Text style={styles.editMyCardButtonText}>Edit Card</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.importCardButton}
+                  onPress={handleImportCard}
+                >
+                  <Upload size={16} color={Colors.light.primary} />
+                  <Text style={styles.importCardButtonText}>Import QR</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {showEditMyCard && (
+                <View style={styles.editCardForm}>
+                  <View style={styles.formHeader}>
+                    <Text style={styles.formTitle}>Edit Business Card</Text>
+                    <TouchableOpacity 
+                      style={styles.closeButton}
+                      onPress={() => setShowEditMyCard(false)}
+                    >
+                      <X size={20} color={Colors.light.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Name *</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardName}
+                      onChangeText={setEditCardName}
+                      placeholder="Your name"
+                      placeholderTextColor={Colors.light.textSecondary}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Position *</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardPosition}
+                      onChangeText={setEditCardPosition}
+                      placeholder="Your position"
+                      placeholderTextColor={Colors.light.textSecondary}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Company *</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardCompany}
+                      onChangeText={setEditCardCompany}
+                      placeholder="Company name"
+                      placeholderTextColor={Colors.light.textSecondary}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Email *</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardEmail}
+                      onChangeText={setEditCardEmail}
+                      placeholder="email@example.com"
+                      placeholderTextColor={Colors.light.textSecondary}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Phone *</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardPhone}
+                      onChangeText={setEditCardPhone}
+                      placeholder="+1-555-0000"
+                      placeholderTextColor={Colors.light.textSecondary}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Website</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardWebsite}
+                      onChangeText={setEditCardWebsite}
+                      placeholder="www.example.com"
+                      placeholderTextColor={Colors.light.textSecondary}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Address</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={editCardAddress}
+                      onChangeText={setEditCardAddress}
+                      placeholder="City, State/Country"
+                      placeholderTextColor={Colors.light.textSecondary}
+                    />
+                  </View>
+                  
+                  <View style={styles.formActions}>
+                    <TouchableOpacity 
+                      style={styles.cancelButton}
+                      onPress={() => setShowEditMyCard(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.saveButton}
+                      onPress={handleSaveMyCard}
+                    >
+                      <Text style={styles.saveButtonText}>Save Card</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
         {activeTab === 'documents' && (
           <View>
             <View style={styles.section}>
@@ -2424,5 +2692,130 @@ const styles = StyleSheet.create({
   },
   cancelMeetingText: {
     color: Colors.light.danger,
+  },
+  myBusinessCardSection: {
+    marginTop: 20,
+    marginBottom: 8,
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  myCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  myCardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  myCardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  toggleCardButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 8,
+  },
+  toggleCardButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.background,
+  },
+  myCardContent: {
+    marginTop: 20,
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+  },
+  cardInfoContainer: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  cardInfoName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  cardInfoPosition: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.primary,
+    marginBottom: 2,
+  },
+  cardInfoCompany: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.textSecondary,
+    marginBottom: 12,
+  },
+  cardInfoDivider: {
+    height: 1,
+    backgroundColor: Colors.light.border,
+    marginVertical: 12,
+  },
+  cardInfoDetail: {
+    fontSize: 14,
+    color: Colors.light.text,
+    marginBottom: 6,
+  },
+  myCardActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  editMyCardButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 8,
+    gap: 8,
+  },
+  editMyCardButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.background,
+  },
+  importCardButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.primary,
+  },
+  importCardButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.primary,
+  },
+  editCardForm: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
 });
