@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import {
   FileText,
   CreditCard,
@@ -318,8 +319,40 @@ export default function DocumentsScreen() {
     }
   };
   
-  const handleScanBusinessCard = () => {
-    console.log('Scan business card');
+  const handleScanBusinessCard = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          'Permission Required',
+          'Camera permission is required to scan business cards.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        console.log('Business card scanned:', result.assets[0].uri);
+        Alert.alert(
+          'Success',
+          'Business card scanned successfully! Processing...',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error scanning business card:', error);
+      Alert.alert(
+        'Error',
+        'Failed to scan business card. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
   
   const handleViewDocument = (docId: string) => {
