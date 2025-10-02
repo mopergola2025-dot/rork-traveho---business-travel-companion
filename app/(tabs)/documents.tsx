@@ -319,6 +319,18 @@ export default function DocumentsScreen() {
     }
   };
   
+  const handleViewBusinessCard = (cardId: string) => {
+    const card = businessCards.find(c => c.id === cardId);
+    if (card) {
+      Alert.alert(
+        'Business Card Details',
+        `Name: ${card.name}\nCompany: ${card.company}\nPosition: ${card.position}\nEmail: ${card.email}\nPhone: ${card.phone}\nScanned: ${new Date(card.scannedDate).toLocaleDateString()}`,
+        [{ text: 'OK' }]
+      );
+      console.log('View business card:', card);
+    }
+  };
+  
   const handleScanBusinessCard = async () => {
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -1168,8 +1180,11 @@ export default function DocumentsScreen() {
                     </Text>
                   </View>
                   <View style={styles.businessCardActions}>
-                    <TouchableOpacity style={styles.contactButton}>
-                      <Text style={styles.contactButtonText}>Contact</Text>
+                    <TouchableOpacity 
+                      style={styles.viewButton}
+                      onPress={() => handleViewBusinessCard(card.id)}
+                    >
+                      <Text style={styles.viewButtonText}>View</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1745,13 +1760,13 @@ const styles = StyleSheet.create({
   businessCardActions: {
     flexDirection: 'row',
   },
-  contactButton: {
+  viewButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  contactButtonText: {
+  viewButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.light.background,
