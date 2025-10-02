@@ -22,6 +22,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   X,
+  CheckSquare,
+  Square,
 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
@@ -98,6 +100,8 @@ export default function ExpensesScreen() {
     title: '',
     amount: '',
     category: 'transport' as Expense['category'],
+    hasReceipt: false,
+    noReceiptAvailable: false,
   });
   const [currencyConverter, setCurrencyConverter] = useState({
     amount: '',
@@ -143,15 +147,15 @@ export default function ExpensesScreen() {
       currency: 'USD',
       category: newExpense.category,
       date: new Date().toISOString().split('T')[0],
-      hasReceipt: false,
+      hasReceipt: newExpense.hasReceipt,
     };
 
     setExpenses([expense, ...expenses]);
     setShowAddModal(false);
-    setNewExpense({ title: '', amount: '', category: 'transport' });
+    setNewExpense({ title: '', amount: '', category: 'transport', hasReceipt: false, noReceiptAvailable: false });
   };
 
-  const handleScanReceipt = async () => {
+  const handleScanReceiptFromModal = async () => {
     if (!cameraPermission) {
       return;
     }
@@ -174,6 +178,7 @@ export default function ExpensesScreen() {
     };
     setScannedReceipts([newReceipt, ...scannedReceipts]);
     setShowCamera(false);
+    setNewExpense({ ...newExpense, hasReceipt: true, noReceiptAvailable: false });
     Alert.alert('Receipt Captured', 'Receipt has been scanned successfully');
   };
 
@@ -259,11 +264,6 @@ export default function ExpensesScreen() {
           <TouchableOpacity style={styles.primaryButton} onPress={handleAddExpense}>
             <Plus size={20} color={Colors.light.background} />
             <Text style={styles.primaryButtonText}>Add Expense</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleScanReceipt}>
-            <Camera size={20} color={Colors.light.primary} />
-            <Text style={styles.secondaryButtonText}>Scan Receipt</Text>
           </TouchableOpacity>
         </View>
 
@@ -418,6 +418,40 @@ export default function ExpensesScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Receipt</Text>
+              
+              <TouchableOpacity 
+                style={styles.scanReceiptButton} 
+                onPress={handleScanReceiptFromModal}
+                disabled={newExpense.noReceiptAvailable}
+              >
+                <Camera size={20} color={newExpense.noReceiptAvailable ? Colors.light.textSecondary : Colors.light.primary} />
+                <Text style={[
+                  styles.scanReceiptButtonText,
+                  newExpense.noReceiptAvailable && styles.scanReceiptButtonTextDisabled
+                ]}>
+                  {newExpense.hasReceipt ? 'Receipt Scanned ✓' : 'Scan Receipt'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.checkboxContainer}
+                onPress={() => setNewExpense({ 
+                  ...newExpense, 
+                  noReceiptAvailable: !newExpense.noReceiptAvailable,
+                  hasReceipt: newExpense.noReceiptAvailable ? newExpense.hasReceipt : false
+                })}
+              >
+                {newExpense.noReceiptAvailable ? (
+                  <CheckSquare size={20} color={Colors.light.primary} />
+                ) : (
+                  <Square size={20} color={Colors.light.textSecondary} />
+                )}
+                <Text style={styles.checkboxLabel}>No receipt available</Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveExpense}>
@@ -1004,5 +1038,34 @@ const styles = StyleSheet.create({
   receiptDate: {
     fontSize: 14,
     color: Colors.light.textSecondary,
+  },
+  scanReceiptButton: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginBottom: 12,
+  },
+  scanReceiptButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.primary,
+  },
+  scanReceiptButtonTextDisabled: {
+    color: Colors.light.textSecondary,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: Colors.light.text,
   },
 });
