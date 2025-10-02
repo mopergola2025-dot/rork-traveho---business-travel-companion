@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -60,13 +60,12 @@ interface ItineraryItem {
 }
 
 const tripStatuses = [
-  { key: 'upcoming' as const, label: 'Upcoming', count: 2 },
   { key: 'current' as const, label: 'Current', count: 1 },
-  { key: 'completed' as const, label: 'Completed', count: 5 },
+  { key: 'upcoming' as const, label: 'Upcoming', count: 2 },
 ];
 
 export default function TripsScreen() {
-  const [selectedStatus, setSelectedStatus] = useState<Trip['status']>('upcoming');
+  const [selectedStatus, setSelectedStatus] = useState<Trip['status']>('current');
   const [showAddTripModal, setShowAddTripModal] = useState<boolean>(false);
   const [newTrip, setNewTrip] = useState({
     destination: '',
@@ -81,8 +80,8 @@ export default function TripsScreen() {
     {
       id: '1',
       destination: 'New York, NY',
-      startDate: '2024-02-15',
-      endDate: '2024-02-18',
+      startDate: '2025-10-15',
+      endDate: '2025-10-18',
       status: 'upcoming',
       flightNumber: 'AA 1234',
       hotel: 'Manhattan Business Hotel',
@@ -102,8 +101,8 @@ export default function TripsScreen() {
     {
       id: '2',
       destination: 'San Francisco, CA',
-      startDate: '2024-01-20',
-      endDate: '2024-01-23',
+      startDate: '2025-10-02',
+      endDate: '2025-10-05',
       status: 'current',
       flightNumber: 'UA 5678',
       hotel: 'Tech Hub Hotel',
@@ -120,23 +119,42 @@ export default function TripsScreen() {
         { id: '3', time: '6:00 PM', title: 'Return Flight', type: 'flight', location: 'SFO Airport' },
       ],
     },
-    {
-      id: '3',
-      destination: 'Chicago, IL',
-      startDate: '2024-01-10',
-      endDate: '2024-01-12',
-      status: 'completed',
-      flightNumber: 'DL 9012',
-      hotel: 'Downtown Business Center',
-      purpose: 'Training',
-      imageUrl: 'https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?w=400&h=200&fit=crop',
-      hasNotifications: false,
-      meetings: [
-        { id: '1', title: 'Training Workshop', time: '9:00 AM', attendees: 15 },
-        { id: '2', title: 'Team Building', time: '3:00 PM', attendees: 12 },
-      ],
-    },
   ]);
+
+  useEffect(() => {
+    const updateTripStatuses = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      setTrips(prevTrips => {
+        return prevTrips
+          .map(trip => {
+            const startDate = new Date(trip.startDate);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(trip.endDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            let newStatus: Trip['status'] = trip.status;
+
+            if (today >= startDate && today <= endDate) {
+              newStatus = 'current';
+            } else if (today < startDate) {
+              newStatus = 'upcoming';
+            } else {
+              newStatus = 'completed';
+            }
+
+            return { ...trip, status: newStatus };
+          })
+          .filter(trip => trip.status !== 'completed');
+      });
+    };
+
+    updateTripStatuses();
+    const interval = setInterval(updateTripStatuses, 60000 * 60);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const filteredTrips = trips.filter(trip => trip.status === selectedStatus);
   const currentTrip = trips.find(trip => trip.status === 'current');
@@ -162,12 +180,33 @@ export default function TripsScreen() {
       return;
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(newTrip.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(newTrip.endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    let status: Trip['status'] = 'upcoming';
+    if (today >= startDate && today <= endDate) {
+      status = 'current';
+    } else if (today < startDate) {
+      status = 'upcoming';
+    } else {
+      status = 'completed';
+    }
+
+    if (status === 'completed') {
+      Alert.alert('Error', 'Cannot add a trip that has already ended');
+      return;
+    }
+
     const trip: Trip = {
       id: Date.now().toString(),
       destination: newTrip.destination,
       startDate: newTrip.startDate,
       endDate: newTrip.endDate,
-      status: 'upcoming',
+      status: status,
       purpose: newTrip.purpose,
       flightNumber: newTrip.flightNumber || undefined,
       hotel: newTrip.hotel || undefined,
