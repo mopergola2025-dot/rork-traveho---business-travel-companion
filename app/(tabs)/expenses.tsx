@@ -5,6 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import {
   Receipt,
@@ -15,6 +18,7 @@ import {
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
+  X,
 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
@@ -67,11 +71,42 @@ export default function ExpensesScreen() {
       hasReceipt: false,
     },
   ]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newExpense, setNewExpense] = useState({
+    title: '',
+    amount: '',
+    category: 'transport' as Expense['category'],
+  });
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   const handleAddExpense = () => {
-    console.log('Add new expense');
+    setShowAddModal(true);
+  };
+
+  const handleSaveExpense = () => {
+    if (!newExpense.title.trim()) {
+      Alert.alert('Error', 'Please enter expense title');
+      return;
+    }
+    if (!newExpense.amount || parseFloat(newExpense.amount) <= 0) {
+      Alert.alert('Error', 'Please enter valid amount');
+      return;
+    }
+
+    const expense: Expense = {
+      id: Date.now().toString(),
+      title: newExpense.title,
+      amount: parseFloat(newExpense.amount),
+      currency: 'USD',
+      category: newExpense.category,
+      date: new Date().toISOString().split('T')[0],
+      hasReceipt: false,
+    };
+
+    setExpenses([expense, ...expenses]);
+    setShowAddModal(false);
+    setNewExpense({ title: '', amount: '', category: 'transport' });
   };
 
   const handleScanReceipt = () => {
@@ -176,6 +211,76 @@ export default function ExpensesScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Expense</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <X size={24} color={Colors.light.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Title</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Airport Taxi"
+                value={newExpense.title}
+                onChangeText={(text) => setNewExpense({ ...newExpense, title: text })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Amount (USD)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                value={newExpense.amount}
+                onChangeText={(text) => setNewExpense({ ...newExpense, amount: text })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Category</Text>
+              <View style={styles.categoryGrid}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.key}
+                    style={[
+                      styles.categoryChip,
+                      newExpense.category === cat.key && {
+                        backgroundColor: cat.color,
+                      },
+                    ]}
+                    onPress={() => setNewExpense({ ...newExpense, category: cat.key })}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        newExpense.category === cat.key && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveExpense}>
+              <Text style={styles.saveButtonText}>Save Expense</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -362,5 +467,79 @@ const styles = StyleSheet.create({
   actionSubtitle: {
     fontSize: 14,
     color: Colors.light.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.light.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: Colors.light.text,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.text,
+  },
+  categoryChipTextActive: {
+    color: Colors.light.background,
+  },
+  saveButton: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.background,
   },
 });
