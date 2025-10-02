@@ -286,6 +286,36 @@ export default function DocumentsScreen() {
     console.log('Scan business card');
   };
   
+  const handleViewDocument = (docId: string) => {
+    const doc = documents.find(d => d.id === docId);
+    if (doc) {
+      Alert.alert(
+        'View Document',
+        `Opening ${doc.name}`,
+        [{ text: 'OK' }]
+      );
+      console.log('View document:', doc);
+    }
+  };
+  
+  const handleDeleteDocument = (docId: string) => {
+    Alert.alert(
+      'Delete Document',
+      'Are you sure you want to delete this document?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setDocuments(documents.filter(doc => doc.id !== docId));
+            Alert.alert('Success', 'Document deleted successfully!');
+          }
+        }
+      ]
+    );
+  };
+  
   const handleSendSummary = (meetingId: string) => {
     console.log(`Send summary for meeting ${meetingId}`);
   };
@@ -510,8 +540,17 @@ export default function DocumentsScreen() {
                       </Text>
                     </View>
                     <View style={styles.documentActions}>
-                      <TouchableOpacity style={styles.actionButton}>
+                      <TouchableOpacity 
+                        style={styles.actionButton}
+                        onPress={() => handleViewDocument(doc.id)}
+                      >
                         <Text style={styles.actionText}>View</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.deleteButton}
+                        onPress={() => handleDeleteDocument(doc.id)}
+                      >
+                        <Trash2 size={16} color={Colors.light.danger} />
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -1316,6 +1355,7 @@ const styles = StyleSheet.create({
   },
   documentActions: {
     flexDirection: 'row',
+    gap: 8,
   },
   actionButton: {
     paddingHorizontal: 16,
@@ -1327,6 +1367,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: Colors.light.background,
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scannerCard: {
     backgroundColor: Colors.light.background,
