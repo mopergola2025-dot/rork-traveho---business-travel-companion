@@ -231,6 +231,22 @@ export default function TripsScreen() {
     }
   };
 
+  const handleTaxiBooking = async () => {
+    try {
+      const url = 'https://www.uber.com/';
+      const supported = await Linking.canOpenURL(url);
+      
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open Uber.com. Please check if you have a web browser installed.');
+      }
+    } catch (error) {
+      console.error('Error opening Uber.com:', error);
+      Alert.alert('Error', 'Failed to open Uber.com');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -322,7 +338,7 @@ export default function TripsScreen() {
                 <Hotel size={24} color={Colors.light.accent} />
                 <Text style={styles.actionText}>Hotel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCard}>
+              <TouchableOpacity style={styles.actionCard} onPress={handleTaxiBooking}>
                 <Car size={24} color={Colors.light.success} />
                 <Text style={styles.actionText}>Taxi</Text>
               </TouchableOpacity>
