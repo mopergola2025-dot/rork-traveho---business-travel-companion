@@ -9,7 +9,9 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
   Receipt,
   Plus,
@@ -74,6 +76,8 @@ export default function ExpensesScreen() {
   ]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [newExpense, setNewExpense] = useState({
     title: '',
     amount: '',
@@ -131,8 +135,25 @@ export default function ExpensesScreen() {
     setNewExpense({ title: '', amount: '', category: 'transport' });
   };
 
-  const handleScanReceipt = () => {
-    console.log('Scan receipt');
+  const handleScanReceipt = async () => {
+    if (!cameraPermission) {
+      return;
+    }
+
+    if (!cameraPermission.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert('Permission Required', 'Camera permission is required to scan receipts');
+        return;
+      }
+    }
+
+    setShowCamera(true);
+  };
+
+  const handleCaptureReceipt = () => {
+    setShowCamera(false);
+    Alert.alert('Receipt Captured', 'Receipt has been scanned successfully');
   };
 
   const getCategoryColor = (category: Expense['category']) => {
@@ -471,6 +492,39 @@ export default function ExpensesScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showCamera}
+        animationType="slide"
+        onRequestClose={() => setShowCamera(false)}
+      >
+        <View style={styles.cameraContainer}>
+          <CameraView style={styles.camera} facing="back">
+            <View style={styles.cameraOverlay}>
+              <View style={styles.cameraHeader}>
+                <TouchableOpacity
+                  style={styles.cameraCloseButton}
+                  onPress={() => setShowCamera(false)}
+                >
+                  <X size={24} color={Colors.light.background} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.cameraFooter}>
+                <Text style={styles.cameraInstructions}>
+                  Position receipt within frame
+                </Text>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={handleCaptureReceipt}
+                >
+                  <Camera size={32} color={Colors.light.background} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </CameraView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -799,5 +853,58 @@ const styles = StyleSheet.create({
   resultSubtext: {
     fontSize: 14,
     color: Colors.light.textSecondary,
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: Colors.light.text,
+  },
+  camera: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  cameraHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+  },
+  cameraCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  cameraInstructions: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.background,
+    marginBottom: 20,
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  captureButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: Colors.light.background,
   },
 });
