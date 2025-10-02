@@ -39,10 +39,15 @@ export default function Maps({ height = 300, showCurrentLocation = true, markers
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setError('Permission to access location was denied');
+        setLoading(false);
         return;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({});
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 5000,
+        distanceInterval: 0,
+      });
       const { latitude, longitude } = currentLocation.coords;
 
       // Get address from coordinates
@@ -69,9 +74,24 @@ export default function Maps({ height = 300, showCurrentLocation = true, markers
           address: 'Address unavailable',
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error getting location:', err);
-      setError('Failed to get current location');
+      
+      let errorMessage = 'Failed to get current location';
+      if (err?.message?.includes('settings')) {
+        errorMessage = 'Please enable location services in your device settings';
+      } else if (err?.message?.includes('denied')) {
+        errorMessage = 'Location permission denied';
+      } else if (err?.message?.includes('timeout')) {
+        errorMessage = 'Location request timed out. Please try again';
+      }
+      
+      setError(errorMessage);
+      Alert.alert(
+        'Location Error',
+        errorMessage + '. You can still use the map by opening it in your maps app.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
     }
