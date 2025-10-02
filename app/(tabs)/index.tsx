@@ -60,12 +60,12 @@ interface ItineraryItem {
 }
 
 const tripStatuses = [
-  { key: 'current' as const, label: 'Current', count: 1 },
   { key: 'upcoming' as const, label: 'Upcoming', count: 2 },
+  { key: 'current' as const, label: 'Current', count: 1 },
 ];
 
 export default function TripsScreen() {
-  const [selectedStatus, setSelectedStatus] = useState<Trip['status']>('current');
+  const [selectedStatus, setSelectedStatus] = useState<Trip['status']>('upcoming');
   const [showAddTripModal, setShowAddTripModal] = useState<boolean>(false);
   const [newTrip, setNewTrip] = useState({
     destination: '',
