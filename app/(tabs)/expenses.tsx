@@ -36,6 +36,12 @@ interface Expense {
   hasReceipt: boolean;
 }
 
+interface ScannedReceipt {
+  id: string;
+  date: string;
+  imageUri?: string;
+}
+
 const categories = [
   { key: 'transport' as const, label: 'Transport', color: Colors.light.primary },
   { key: 'food' as const, label: 'Food & Dining', color: Colors.light.accent },
@@ -72,6 +78,16 @@ export default function ExpensesScreen() {
       category: 'accommodation',
       date: '2024-01-14',
       hasReceipt: false,
+    },
+  ]);
+  const [scannedReceipts, setScannedReceipts] = useState<ScannedReceipt[]>([
+    {
+      id: '1',
+      date: '2024-01-15',
+    },
+    {
+      id: '2',
+      date: '2024-01-15',
     },
   ]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -152,6 +168,11 @@ export default function ExpensesScreen() {
   };
 
   const handleCaptureReceipt = () => {
+    const newReceipt: ScannedReceipt = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split('T')[0],
+    };
+    setScannedReceipts([newReceipt, ...scannedReceipts]);
     setShowCamera(false);
     Alert.alert('Receipt Captured', 'Receipt has been scanned successfully');
   };
@@ -277,6 +298,32 @@ export default function ExpensesScreen() {
               </View>
             </TouchableOpacity>
           ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Scanned Receipts</Text>
+          {scannedReceipts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Receipt size={48} color={Colors.light.textSecondary} />
+              <Text style={styles.emptyStateText}>No scanned receipts yet</Text>
+              <Text style={styles.emptyStateSubtext}>Tap "Scan Receipt" to add one</Text>
+            </View>
+          ) : (
+            scannedReceipts.map((receipt) => (
+              <TouchableOpacity key={receipt.id} style={styles.receiptCard}>
+                <View style={styles.receiptIcon}>
+                  <Receipt size={24} color={Colors.light.primary} />
+                </View>
+                <View style={styles.receiptInfo}>
+                  <Text style={styles.receiptTitle}>Receipt #{receipt.id.slice(-4)}</Text>
+                  <Text style={styles.receiptDate}>
+                    Scanned on {new Date(receipt.date).toLocaleDateString()}
+                  </Text>
+                </View>
+                <ArrowUpRight size={20} color={Colors.light.gray} />
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         <View style={styles.section}>
@@ -906,5 +953,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: Colors.light.background,
+  },
+  emptyState: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.text,
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    marginTop: 4,
+  },
+  receiptCard: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  receiptIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.light.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  receiptInfo: {
+    flex: 1,
+  },
+  receiptTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  receiptDate: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
   },
 });
