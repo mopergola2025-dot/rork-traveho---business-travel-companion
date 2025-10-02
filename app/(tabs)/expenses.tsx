@@ -8,6 +8,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Receipt,
@@ -72,11 +73,32 @@ export default function ExpensesScreen() {
     },
   ]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [newExpense, setNewExpense] = useState({
     title: '',
     amount: '',
     category: 'transport' as Expense['category'],
   });
+  const [currencyConverter, setCurrencyConverter] = useState({
+    amount: '',
+    fromCurrency: 'USD',
+    toCurrency: 'EUR',
+    result: null as number | null,
+    loading: false,
+  });
+
+  const popularCurrencies = [
+    { code: 'USD', name: 'US Dollar', symbol: '$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British Pound', symbol: '£' },
+    { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+    { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
+    { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+    { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+    { code: 'CHF', name: 'Swiss Franc', symbol: 'Fr' },
+    { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+    { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
+  ];
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
@@ -115,6 +137,48 @@ export default function ExpensesScreen() {
 
   const getCategoryColor = (category: Expense['category']) => {
     return categories.find(cat => cat.key === category)?.color || Colors.light.gray;
+  };
+
+  const handleCurrencyConvert = async () => {
+    if (!currencyConverter.amount || parseFloat(currencyConverter.amount) <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    setCurrencyConverter({ ...currencyConverter, loading: true, result: null });
+
+    try {
+      const response = await fetch(
+        `https://api.exchangerate-api.com/v4/latest/${currencyConverter.fromCurrency}`
+      );
+      const data = await response.json();
+      
+      if (data.rates && data.rates[currencyConverter.toCurrency]) {
+        const rate = data.rates[currencyConverter.toCurrency];
+        const result = parseFloat(currencyConverter.amount) * rate;
+        setCurrencyConverter({ ...currencyConverter, result, loading: false });
+      } else {
+        Alert.alert('Error', 'Unable to fetch exchange rate');
+        setCurrencyConverter({ ...currencyConverter, loading: false });
+      }
+    } catch (error) {
+      console.error('Currency conversion error:', error);
+      Alert.alert('Error', 'Failed to convert currency. Please try again.');
+      setCurrencyConverter({ ...currencyConverter, loading: false });
+    }
+  };
+
+  const handleOpenCurrencyConverter = () => {
+    setShowCurrencyModal(true);
+  };
+
+  const swapCurrencies = () => {
+    setCurrencyConverter({
+      ...currencyConverter,
+      fromCurrency: currencyConverter.toCurrency,
+      toCurrency: currencyConverter.fromCurrency,
+      result: null,
+    });
   };
 
   return (
@@ -184,7 +248,7 @@ export default function ExpensesScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={handleOpenCurrencyConverter}>
             <View style={styles.actionIcon}>
               <DollarSign size={24} color={Colors.light.accent} />
             </View>
@@ -277,6 +341,119 @@ export default function ExpensesScreen() {
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveExpense}>
               <Text style={styles.saveButtonText}>Save Expense</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Currency Converter</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                <X size={24} color={Colors.light.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Amount</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter amount"
+                keyboardType="decimal-pad"
+                value={currencyConverter.amount}
+                onChangeText={(text) => setCurrencyConverter({ ...currencyConverter, amount: text, result: null })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>From Currency</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.currencyScroll}>
+                <View style={styles.currencyGrid}>
+                  {popularCurrencies.map((currency) => (
+                    <TouchableOpacity
+                      key={currency.code}
+                      style={[
+                        styles.currencyChip,
+                        currencyConverter.fromCurrency === currency.code && styles.currencyChipActive,
+                      ]}
+                      onPress={() => setCurrencyConverter({ ...currencyConverter, fromCurrency: currency.code, result: null })}
+                    >
+                      <Text
+                        style={[
+                          styles.currencyChipText,
+                          currencyConverter.fromCurrency === currency.code && styles.currencyChipTextActive,
+                        ]}
+                      >
+                        {currency.symbol} {currency.code}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            <TouchableOpacity style={styles.swapButton} onPress={swapCurrencies}>
+              <ArrowDownRight size={20} color={Colors.light.primary} />
+              <ArrowUpRight size={20} color={Colors.light.primary} style={{ marginLeft: -8 }} />
+            </TouchableOpacity>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>To Currency</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.currencyScroll}>
+                <View style={styles.currencyGrid}>
+                  {popularCurrencies.map((currency) => (
+                    <TouchableOpacity
+                      key={currency.code}
+                      style={[
+                        styles.currencyChip,
+                        currencyConverter.toCurrency === currency.code && styles.currencyChipActive,
+                      ]}
+                      onPress={() => setCurrencyConverter({ ...currencyConverter, toCurrency: currency.code, result: null })}
+                    >
+                      <Text
+                        style={[
+                          styles.currencyChipText,
+                          currencyConverter.toCurrency === currency.code && styles.currencyChipTextActive,
+                        ]}
+                      >
+                        {currency.symbol} {currency.code}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {currencyConverter.result !== null && (
+              <View style={styles.resultCard}>
+                <Text style={styles.resultLabel}>Converted Amount</Text>
+                <Text style={styles.resultAmount}>
+                  {popularCurrencies.find(c => c.code === currencyConverter.toCurrency)?.symbol || ''}
+                  {currencyConverter.result.toFixed(2)} {currencyConverter.toCurrency}
+                </Text>
+                <Text style={styles.resultSubtext}>
+                  {currencyConverter.amount} {currencyConverter.fromCurrency} = {currencyConverter.result.toFixed(2)} {currencyConverter.toCurrency}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity 
+              style={[styles.saveButton, currencyConverter.loading && styles.saveButtonDisabled]} 
+              onPress={handleCurrencyConvert}
+              disabled={currencyConverter.loading}
+            >
+              {currencyConverter.loading ? (
+                <ActivityIndicator color={Colors.light.background} />
+              ) : (
+                <Text style={styles.saveButtonText}>Convert</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -541,5 +718,73 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.light.background,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  currencyScroll: {
+    marginHorizontal: -4,
+  },
+  currencyGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  currencyChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  currencyChipActive: {
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+  },
+  currencyChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.text,
+  },
+  currencyChipTextActive: {
+    color: Colors.light.background,
+  },
+  swapButton: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 24,
+    padding: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  resultCard: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+  },
+  resultLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.textSecondary,
+    marginBottom: 8,
+  },
+  resultAmount: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    marginBottom: 4,
+  },
+  resultSubtext: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
   },
 });
