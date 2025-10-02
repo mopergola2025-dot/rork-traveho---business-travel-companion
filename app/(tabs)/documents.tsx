@@ -529,7 +529,7 @@ export default function DocumentsScreen() {
                 const IconComponent = docType?.icon || FileText;
                 
                 return (
-                  <TouchableOpacity key={doc.id} style={styles.documentCard}>
+                  <View key={doc.id} style={styles.documentCard}>
                     <View style={styles.documentIcon}>
                       <IconComponent size={20} color={Colors.light.primary} />
                     </View>
@@ -553,7 +553,7 @@ export default function DocumentsScreen() {
                         <Trash2 size={16} color={Colors.light.danger} />
                       </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
