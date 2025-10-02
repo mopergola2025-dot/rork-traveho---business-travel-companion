@@ -2037,7 +2037,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     gap: 8,
-    marginTop: 16,
   },
   addMeetingButtonText: {
     fontSize: 16,
