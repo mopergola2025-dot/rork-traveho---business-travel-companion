@@ -148,22 +148,35 @@ export default function ExpensesScreen() {
     setCurrencyConverter({ ...currencyConverter, loading: true, result: null });
 
     try {
-      const response = await fetch(
-        `https://api.exchangerate-api.com/v4/latest/${currencyConverter.fromCurrency}`
-      );
+      console.log('Starting currency conversion...');
+      console.log('From:', currencyConverter.fromCurrency, 'To:', currencyConverter.toCurrency, 'Amount:', currencyConverter.amount);
+      
+      const url = `https://api.frankfurter.app/latest?from=${currencyConverter.fromCurrency}&to=${currencyConverter.toCurrency}`;
+      console.log('Fetching from:', url);
+      
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
       
       if (data.rates && data.rates[currencyConverter.toCurrency]) {
         const rate = data.rates[currencyConverter.toCurrency];
         const result = parseFloat(currencyConverter.amount) * rate;
+        console.log('Conversion successful:', result);
         setCurrencyConverter({ ...currencyConverter, result, loading: false });
       } else {
+        console.error('No rate found in response');
         Alert.alert('Error', 'Unable to fetch exchange rate');
         setCurrencyConverter({ ...currencyConverter, loading: false });
       }
     } catch (error) {
       console.error('Currency conversion error:', error);
-      Alert.alert('Error', 'Failed to convert currency. Please try again.');
+      Alert.alert('Error', `Failed to convert currency: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setCurrencyConverter({ ...currencyConverter, loading: false });
     }
   };
