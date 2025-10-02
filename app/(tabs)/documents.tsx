@@ -331,6 +331,18 @@ export default function DocumentsScreen() {
     }
   };
   
+  const handleEditBusinessCard = (cardId: string) => {
+    const card = businessCards.find(c => c.id === cardId);
+    if (card) {
+      Alert.alert(
+        'Edit Business Card',
+        `Editing card for ${card.name}`,
+        [{ text: 'OK' }]
+      );
+      console.log('Edit business card:', card);
+    }
+  };
+  
   const handleScanBusinessCard = async () => {
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -1186,6 +1198,12 @@ export default function DocumentsScreen() {
                     >
                       <Text style={styles.viewButtonText}>View</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.editButton}
+                      onPress={() => handleEditBusinessCard(card.id)}
+                    >
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
@@ -1759,6 +1777,7 @@ const styles = StyleSheet.create({
   },
   businessCardActions: {
     flexDirection: 'row',
+    gap: 8,
   },
   viewButton: {
     backgroundColor: Colors.light.primary,
@@ -1767,6 +1786,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   viewButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.background,
+  },
+  editButton: {
+    backgroundColor: Colors.light.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  editButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.light.background,
