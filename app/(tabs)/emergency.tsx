@@ -6,6 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import {
   Shield,
@@ -16,6 +19,8 @@ import {
   Pill,
   Ambulance,
   AlertTriangle,
+  Edit2,
+  X,
 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
@@ -53,6 +58,12 @@ export default function EmergencyScreen() {
     },
   ]);
 
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
+  const [contactName, setContactName] = useState<string>('');
+  const [contactNumber, setContactNumber] = useState<string>('');
+  const [contactType, setContactType] = useState<'insurance' | 'personal' | 'local'>('personal');
+
   const [services] = useState<EmergencyService[]>([
     {
       id: '1',
@@ -88,7 +99,63 @@ export default function EmergencyScreen() {
   };
 
   const handleAddContact = () => {
-    console.log('Add emergency contact');
+    setEditingContact(null);
+    setContactName('');
+    setContactNumber('');
+    setContactType('personal');
+    setModalVisible(true);
+  };
+
+  const handleEditContact = (contact: EmergencyContact) => {
+    setEditingContact(contact);
+    setContactName(contact.name);
+    setContactNumber(contact.number);
+    setContactType(contact.type);
+    setModalVisible(true);
+  };
+
+  const handleSaveContact = () => {
+    if (!contactName.trim() || !contactNumber.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (editingContact) {
+      setContacts(contacts.map(c => 
+        c.id === editingContact.id 
+          ? { ...c, name: contactName, number: contactNumber, type: contactType }
+          : c
+      ));
+    } else {
+      const newContact: EmergencyContact = {
+        id: Date.now().toString(),
+        name: contactName,
+        number: contactNumber,
+        type: contactType,
+      };
+      setContacts([...contacts, newContact]);
+    }
+
+    setModalVisible(false);
+    setContactName('');
+    setContactNumber('');
+    setContactType('personal');
+    setEditingContact(null);
+  };
+
+  const handleDeleteContact = (id: string) => {
+    Alert.alert(
+      'Delete Contact',
+      'Are you sure you want to delete this contact?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => setContacts(contacts.filter(c => c.id !== id))
+        },
+      ]
+    );
   };
 
   const getServiceIcon = (type: EmergencyService['type']) => {
@@ -170,6 +237,13 @@ export default function EmergencyScreen() {
               </View>
               <View style={styles.contactActions}>
                 <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => handleEditContact(contact)}
+                >
+                  <Edit2 size={16} color={Colors.light.primary} />
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
                   style={styles.callButton}
                   onPress={() => handleCall(contact.number)}
                 >
@@ -237,6 +311,132 @@ export default function EmergencyScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingContact ? 'Edit Contact' : 'Add Emergency Contact'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <X size={24} color={Colors.light.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter contact name"
+                  value={contactName}
+                  onChangeText={setContactName}
+                  placeholderTextColor={Colors.light.gray}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+1-555-0123"
+                  value={contactNumber}
+                  onChangeText={setContactNumber}
+                  keyboardType="phone-pad"
+                  placeholderTextColor={Colors.light.gray}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Contact Type</Text>
+                <View style={styles.typeSelector}>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      contactType === 'personal' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setContactType('personal')}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        contactType === 'personal' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Personal
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      contactType === 'insurance' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setContactType('insurance')}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        contactType === 'insurance' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Insurance
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      contactType === 'local' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setContactType('local')}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        contactType === 'local' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Local
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {editingContact && (
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => {
+                    setModalVisible(false);
+                    handleDeleteContact(editingContact.id);
+                  }}
+                >
+                  <Text style={styles.deleteButtonText}>Delete Contact</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveContact}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -350,6 +550,23 @@ const styles = StyleSheet.create({
   },
   contactActions: {
     flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.primary,
   },
   callButton: {
     backgroundColor: Colors.light.primary,
@@ -439,5 +656,121 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.textSecondary,
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.light.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  modalBody: {
+    paddingHorizontal: 24,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: Colors.light.text,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  typeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+  },
+  typeButtonActive: {
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+  },
+  typeButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.textSecondary,
+  },
+  typeButtonTextActive: {
+    color: Colors.light.background,
+  },
+  deleteButton: {
+    backgroundColor: Colors.light.danger,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.background,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 24,
+    marginTop: 24,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.light.backgroundSecondary,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  saveButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.background,
   },
 });
