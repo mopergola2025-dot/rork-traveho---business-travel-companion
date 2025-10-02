@@ -100,6 +100,7 @@ export default function DocumentsScreen() {
   const [meetingFilter, setMeetingFilter] = useState<'all' | 'upcoming' | 'past' | 'today'>('all');
   const [showAddMeeting, setShowAddMeeting] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordingMeetingId, setRecordingMeetingId] = useState<string | null>(null);
   const [showAddTodo, setShowAddTodo] = useState<boolean>(false);
   const [newTodoTitle, setNewTodoTitle] = useState<string>('');
   const [newTodoDescription, setNewTodoDescription] = useState<string>('');
@@ -281,6 +282,40 @@ export default function DocumentsScreen() {
   const handleStopRecording = () => {
     setIsRecording(false);
     console.log('Stop recording meeting');
+  };
+  
+  const handleStartMeetingRecording = (meetingId: string) => {
+    setRecordingMeetingId(meetingId);
+    console.log(`Start recording meeting ${meetingId}`);
+    Alert.alert('Recording Started', 'Meeting recording has started');
+  };
+  
+  const handleStopMeetingRecording = (meetingId: string) => {
+    setRecordingMeetingId(null);
+    setMeetings(meetings.map(m => 
+      m.id === meetingId ? { ...m, hasRecording: true } : m
+    ));
+    console.log(`Stop recording meeting ${meetingId}`);
+    Alert.alert('Recording Saved', 'Meeting recording has been saved');
+  };
+  
+  const handlePlayRecording = (meetingId: string) => {
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (meeting) {
+      console.log(`Play recording for meeting ${meetingId}`);
+      Alert.alert('Play Recording', `Playing recording for "${meeting.title}"`);
+    }
+  };
+  
+  const handleGenerateSummary = (meetingId: string) => {
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (meeting) {
+      setMeetings(meetings.map(m => 
+        m.id === meetingId ? { ...m, hasSummary: true } : m
+      ));
+      console.log(`Generate summary for meeting ${meetingId}`);
+      Alert.alert('Summary Generated', `AI summary has been generated for "${meeting.title}"`);
+    }
   };
   
   const handleScanBusinessCard = () => {
@@ -999,21 +1034,54 @@ export default function DocumentsScreen() {
                       </View>
                       
                       <View style={styles.meetingActions}>
+                        {recordingMeetingId === meeting.id ? (
+                          <TouchableOpacity 
+                            style={[styles.meetingActionButton, styles.recordingActiveButton]}
+                            onPress={() => handleStopMeetingRecording(meeting.id)}
+                          >
+                            <Square size={16} color={Colors.light.background} />
+                            <Text style={[styles.meetingActionText, styles.recordingActiveText]}>Stop Recording</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity 
+                            style={styles.meetingActionButton}
+                            onPress={() => handleStartMeetingRecording(meeting.id)}
+                          >
+                            <Mic size={16} color={Colors.light.danger} />
+                            <Text style={styles.meetingActionText}>Record</Text>
+                          </TouchableOpacity>
+                        )}
+                        
                         {meeting.hasRecording && (
-                          <TouchableOpacity style={styles.meetingActionButton}>
-                            <Play size={16} color={Colors.light.primary} />
+                          <TouchableOpacity 
+                            style={styles.meetingActionButton}
+                            onPress={() => handlePlayRecording(meeting.id)}
+                          >
+                            <Play size={16} color={Colors.light.success} />
                             <Text style={styles.meetingActionText}>Play</Text>
                           </TouchableOpacity>
                         )}
+                        
+                        {meeting.hasRecording && !meeting.hasSummary && (
+                          <TouchableOpacity 
+                            style={styles.meetingActionButton}
+                            onPress={() => handleGenerateSummary(meeting.id)}
+                          >
+                            <FileText size={16} color={Colors.light.primary} />
+                            <Text style={styles.meetingActionText}>Summary</Text>
+                          </TouchableOpacity>
+                        )}
+                        
                         {meeting.hasSummary && (
                           <TouchableOpacity 
                             style={styles.meetingActionButton}
                             onPress={() => handleSendSummary(meeting.id)}
                           >
                             <Send size={16} color={Colors.light.accent} />
-                            <Text style={styles.meetingActionText}>Send Summary</Text>
+                            <Text style={styles.meetingActionText}>Send</Text>
                           </TouchableOpacity>
                         )}
+                        
                         <TouchableOpacity 
                           style={[styles.meetingActionButton, styles.cancelMeetingButton]}
                           onPress={() => handleCancelMeeting(meeting.id)}
@@ -1584,7 +1652,8 @@ const styles = StyleSheet.create({
   },
   meetingActions: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   meetingActionButton: {
     flexDirection: 'row',
@@ -1596,9 +1665,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   meetingActionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: Colors.light.text,
+  },
+  recordingActiveButton: {
+    backgroundColor: Colors.light.danger,
+  },
+  recordingActiveText: {
+    color: Colors.light.background,
   },
   businessCardItem: {
     backgroundColor: Colors.light.background,
