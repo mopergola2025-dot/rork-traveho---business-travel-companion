@@ -247,6 +247,22 @@ export default function TripsScreen() {
     }
   };
 
+  const handleLoungeBooking = async () => {
+    try {
+      const url = 'https://www.loungepass.com/';
+      const supported = await Linking.canOpenURL(url);
+      
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open LoungePass.com. Please check if you have a web browser installed.');
+      }
+    } catch (error) {
+      console.error('Error opening LoungePass.com:', error);
+      Alert.alert('Error', 'Failed to open LoungePass.com');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -342,7 +358,7 @@ export default function TripsScreen() {
                 <Car size={24} color={Colors.light.success} />
                 <Text style={styles.actionText}>Taxi</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCard}>
+              <TouchableOpacity style={styles.actionCard} onPress={handleLoungeBooking}>
                 <Coffee size={24} color={Colors.light.danger} />
                 <Text style={styles.actionText}>Lounge</Text>
               </TouchableOpacity>
