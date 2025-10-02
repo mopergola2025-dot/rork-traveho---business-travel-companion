@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
+  Alert,
 } from 'react-native';
 import {
   MessageCircle,
@@ -28,6 +29,7 @@ interface User {
   location: string;
   isOnline: boolean;
   mutualConnections: number;
+  isConnected?: boolean;
 }
 
 interface Post {
@@ -46,7 +48,7 @@ export default function SocialScreen() {
   const [activeTab, setActiveTab] = useState<'feed' | 'connect'>('feed');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const [users] = useState<User[]>([
+  const [users, setUsers] = useState<User[]>([
     {
       id: '1',
       name: 'Sarah Johnson',
@@ -54,6 +56,7 @@ export default function SocialScreen() {
       location: 'New York, NY',
       isOnline: true,
       mutualConnections: 3,
+      isConnected: false,
     },
     {
       id: '2',
@@ -62,6 +65,7 @@ export default function SocialScreen() {
       location: 'San Francisco, CA',
       isOnline: false,
       mutualConnections: 1,
+      isConnected: false,
     },
     {
       id: '3',
@@ -70,6 +74,7 @@ export default function SocialScreen() {
       location: 'London, UK',
       isOnline: true,
       mutualConnections: 5,
+      isConnected: false,
     },
   ]);
 
@@ -121,7 +126,28 @@ export default function SocialScreen() {
   };
 
   const handleConnect = (userId: string) => {
-    console.log(`Connect with user ${userId}`);
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    setUsers(prevUsers => 
+      prevUsers.map(u => 
+        u.id === userId ? { ...u, isConnected: !u.isConnected } : u
+      )
+    );
+
+    if (!user.isConnected) {
+      Alert.alert(
+        'Connection Request Sent',
+        `You are now connected with ${user.name}!`,
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert(
+        'Disconnected',
+        `You have disconnected from ${user.name}`,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleMessage = (userId: string) => {
@@ -276,11 +302,19 @@ export default function SocialScreen() {
                   
                   <View style={styles.userActions}>
                     <TouchableOpacity
-                      style={styles.connectButton}
+                      style={[
+                        styles.connectButton,
+                        user.isConnected && styles.connectedButton
+                      ]}
                       onPress={() => handleConnect(user.id)}
                     >
-                      <UserPlus size={16} color={Colors.light.background} />
-                      <Text style={styles.connectButtonText}>Connect</Text>
+                      <UserPlus size={16} color={user.isConnected ? Colors.light.primary : Colors.light.background} />
+                      <Text style={[
+                        styles.connectButtonText,
+                        user.isConnected && styles.connectedButtonText
+                      ]}>
+                        {user.isConnected ? 'Connected' : 'Connect'}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.messageButton}
@@ -569,6 +603,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: Colors.light.background,
+  },
+  connectedButton: {
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.primary,
+  },
+  connectedButtonText: {
+    color: Colors.light.primary,
   },
   messageButton: {
     backgroundColor: Colors.light.backgroundSecondary,
