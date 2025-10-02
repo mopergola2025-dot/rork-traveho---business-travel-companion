@@ -8,7 +8,9 @@ import {
   TextInput,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import {
   FileText,
   CreditCard,
@@ -113,7 +115,7 @@ export default function DocumentsScreen() {
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [showFriendSelector, setShowFriendSelector] = useState<boolean>(false);
   
-  const [documents] = useState<Document[]>([
+  const [documents, setDocuments] = useState<Document[]>([
     {
       id: '1',
       name: 'Passport - John Doe',
@@ -223,8 +225,49 @@ export default function DocumentsScreen() {
     },
   ]);
 
-  const handleUpload = (type: Document['type']) => {
-    console.log(`Upload ${type} document`);
+  const handleUpload = async (type: Document['type']) => {
+    try {
+      console.log(`Opening document picker for ${type}`);
+      
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+      
+      console.log('Document picker result:', result);
+      
+      if (result.canceled) {
+        console.log('Document picker was cancelled');
+        return;
+      }
+      
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        console.log('Selected file:', file);
+        
+        const newDocument: Document = {
+          id: Date.now().toString(),
+          name: file.name,
+          type: type,
+          uploadDate: new Date().toISOString().split('T')[0],
+        };
+        
+        setDocuments([newDocument, ...documents]);
+        
+        Alert.alert(
+          'Success',
+          `${file.name} has been uploaded successfully!`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert(
+        'Error',
+        'Failed to upload document. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
   
   const handleStartRecording = () => {
