@@ -604,7 +604,7 @@ export default function ExpensesScreen() {
             <View style={styles.emptyState}>
               <Receipt size={48} color={Colors.light.textSecondary} />
               <Text style={styles.emptyStateText}>No scanned receipts yet</Text>
-              <Text style={styles.emptyStateSubtext}>Tap &quot;Scan Receipt&quot; to add one</Text>
+              <Text style={styles.emptyStateSubtext}>Tap "Scan Receipt" to add one</Text>
             </View>
           ) : (
             scannedReceipts.map((receipt) => (
