@@ -321,6 +321,27 @@ export default function DocumentsScreen() {
     console.log(`Send summary for meeting ${meetingId}`);
   };
   
+  const handleCancelMeeting = (meetingId: string) => {
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (meeting) {
+      Alert.alert(
+        'Cancel Meeting',
+        `Are you sure you want to cancel "${meeting.title}"?`,
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Yes, Cancel',
+            style: 'destructive',
+            onPress: () => {
+              setMeetings(meetings.filter(m => m.id !== meetingId));
+              Alert.alert('Success', 'Meeting cancelled successfully!');
+            }
+          }
+        ]
+      );
+    }
+  };
+  
   const handleAddMeeting = () => {
     if (newMeetingTitle.trim()) {
       const newMeeting: Meeting = {
@@ -993,6 +1014,13 @@ export default function DocumentsScreen() {
                             <Text style={styles.meetingActionText}>Send Summary</Text>
                           </TouchableOpacity>
                         )}
+                        <TouchableOpacity 
+                          style={[styles.meetingActionButton, styles.cancelMeetingButton]}
+                          onPress={() => handleCancelMeeting(meeting.id)}
+                        >
+                          <X size={16} color={Colors.light.danger} />
+                          <Text style={[styles.meetingActionText, styles.cancelMeetingText]}>Cancel</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   ))
@@ -2236,5 +2264,12 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: Colors.light.background,
+  },
+  cancelMeetingButton: {
+    borderWidth: 1,
+    borderColor: Colors.light.danger,
+  },
+  cancelMeetingText: {
+    color: Colors.light.danger,
   },
 });
