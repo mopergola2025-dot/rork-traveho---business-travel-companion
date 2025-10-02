@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-
+  Modal,
+  Alert,
 } from 'react-native';
 import Maps from '@/components/Maps';
 import {
@@ -66,6 +67,28 @@ export default function ExploreScreen() {
   const [translatedText, setTranslatedText] = useState<string>('');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [sourceLang, setSourceLang] = useState<string>('en');
+  const [targetLang, setTargetLang] = useState<string>('es');
+  const [showSourceLangPicker, setShowSourceLangPicker] = useState<boolean>(false);
+  const [showTargetLangPicker, setShowTargetLangPicker] = useState<boolean>(false);
+  
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'nl', name: 'Dutch' },
+    { code: 'pl', name: 'Polish' },
+    { code: 'tr', name: 'Turkish' },
+  ];
   
   const [places] = useState<Place[]>([
     {
@@ -159,11 +182,33 @@ export default function ExploreScreen() {
     if (!sourceText.trim()) return;
     
     setIsTranslating(true);
-    // Simulate AI translation
-    setTimeout(() => {
-      setTranslatedText(`Translated: ${sourceText}`);
+    
+    try {
+      const response = await fetch('https://libretranslate.com/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: sourceText,
+          source: sourceLang,
+          target: targetLang,
+          format: 'text',
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Translation failed');
+      }
+      
+      const data = await response.json();
+      setTranslatedText(data.translatedText);
+    } catch (error) {
+      console.error('Translation error:', error);
+      Alert.alert('Translation Error', 'Failed to translate text. Please try again.');
+    } finally {
       setIsTranslating(false);
-    }, 1500);
+    }
   };
   
   const handleVoiceInput = () => {
@@ -179,9 +224,13 @@ export default function ExploreScreen() {
   };
   
   const handleSwapLanguages = () => {
-    const temp = sourceText;
+    const tempLang = sourceLang;
+    setSourceLang(targetLang);
+    setTargetLang(tempLang);
+    
+    const tempText = sourceText;
     setSourceText(translatedText);
-    setTranslatedText(temp);
+    setTranslatedText(tempText);
   };
 
   return (
@@ -393,11 +442,21 @@ export default function ExploreScreen() {
               <View style={styles.translatorHeader}>
                 <Text style={styles.translatorTitle}>AI Translator</Text>
                 <View style={styles.languageSelector}>
-                  <Text style={styles.languageText}>EN</Text>
+                  <TouchableOpacity 
+                    style={styles.languageButton}
+                    onPress={() => setShowSourceLangPicker(true)}
+                  >
+                    <Text style={styles.languageText}>{sourceLang.toUpperCase()}</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={handleSwapLanguages}>
                     <RotateCcw size={20} color={Colors.light.primary} />
                   </TouchableOpacity>
-                  <Text style={styles.languageText}>ES</Text>
+                  <TouchableOpacity 
+                    style={styles.languageButton}
+                    onPress={() => setShowTargetLangPicker(true)}
+                  >
+                    <Text style={styles.languageText}>{targetLang.toUpperCase()}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               
@@ -483,6 +542,92 @@ export default function ExploreScreen() {
         </View>
         </ScrollView>
       )}
+      
+      <Modal
+        visible={showSourceLangPicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSourceLangPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Source Language</Text>
+              <TouchableOpacity onPress={() => setShowSourceLangPicker(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.languageList}>
+              {languages.map((lang) => (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.languageItem,
+                    sourceLang === lang.code && styles.languageItemSelected
+                  ]}
+                  onPress={() => {
+                    setSourceLang(lang.code);
+                    setShowSourceLangPicker(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.languageItemText,
+                    sourceLang === lang.code && styles.languageItemTextSelected
+                  ]}>
+                    {lang.name}
+                  </Text>
+                  {sourceLang === lang.code && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      
+      <Modal
+        visible={showTargetLangPicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowTargetLangPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Target Language</Text>
+              <TouchableOpacity onPress={() => setShowTargetLangPicker(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.languageList}>
+              {languages.map((lang) => (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.languageItem,
+                    targetLang === lang.code && styles.languageItemSelected
+                  ]}
+                  onPress={() => {
+                    setTargetLang(lang.code);
+                    setShowTargetLangPicker(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.languageItemText,
+                    targetLang === lang.code && styles.languageItemTextSelected
+                  ]}>
+                    {lang.name}
+                  </Text>
+                  {targetLang === lang.code && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -867,5 +1012,67 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
   },
-
+  languageButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: Colors.light.backgroundSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.light.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  modalClose: {
+    fontSize: 24,
+    color: Colors.light.textSecondary,
+  },
+  languageList: {
+    padding: 20,
+  },
+  languageItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: Colors.light.backgroundSecondary,
+  },
+  languageItemSelected: {
+    backgroundColor: Colors.light.primary,
+  },
+  languageItemText: {
+    fontSize: 16,
+    color: Colors.light.text,
+  },
+  languageItemTextSelected: {
+    color: Colors.light.background,
+    fontWeight: '600',
+  },
+  checkmark: {
+    fontSize: 20,
+    color: Colors.light.background,
+    fontWeight: '600',
+  },
 });
