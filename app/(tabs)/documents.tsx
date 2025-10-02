@@ -97,6 +97,7 @@ export default function DocumentsScreen() {
   const [activeTab, setActiveTab] = useState<'documents' | 'meetings' | 'cards' | 'todos'>('documents');
   const [meetingView, setMeetingView] = useState<'list' | 'calendar'>('list');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [meetingFilter, setMeetingFilter] = useState<'all' | 'upcoming' | 'past' | 'today'>('all');
   const [showAddMeeting, setShowAddMeeting] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [showAddTodo, setShowAddTodo] = useState<boolean>(false);
@@ -444,6 +445,29 @@ export default function DocumentsScreen() {
       ...meeting.attendees,
       ...friendAttendees.map(friend => friend.name)
     ];
+  };
+
+  const getFilteredMeetings = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    
+    switch (meetingFilter) {
+      case 'today':
+        return meetings.filter(meeting => meeting.date === today);
+      case 'upcoming':
+        return meetings.filter(meeting => {
+          const meetingDate = new Date(meeting.date);
+          return meetingDate >= now;
+        }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      case 'past':
+        return meetings.filter(meeting => {
+          const meetingDate = new Date(meeting.date);
+          return meetingDate < now;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      case 'all':
+      default:
+        return meetings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
   };
 
   const getSelectedFriendsText = () => {
@@ -878,8 +902,42 @@ export default function DocumentsScreen() {
                 </View>
                 
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>All Meetings</Text>
-                  {meetings.map((meeting) => (
+                  <View style={styles.meetingsListHeader}>
+                    <Text style={styles.sectionTitle}>All Meetings</Text>
+                    <View style={styles.meetingFilterContainer}>
+                      <TouchableOpacity
+                        style={[styles.filterButton, meetingFilter === 'all' && styles.filterButtonActive]}
+                        onPress={() => setMeetingFilter('all')}
+                      >
+                        <Text style={[styles.filterButtonText, meetingFilter === 'all' && styles.filterButtonTextActive]}>All</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.filterButton, meetingFilter === 'today' && styles.filterButtonActive]}
+                        onPress={() => setMeetingFilter('today')}
+                      >
+                        <Text style={[styles.filterButtonText, meetingFilter === 'today' && styles.filterButtonTextActive]}>Today</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.filterButton, meetingFilter === 'upcoming' && styles.filterButtonActive]}
+                        onPress={() => setMeetingFilter('upcoming')}
+                      >
+                        <Text style={[styles.filterButtonText, meetingFilter === 'upcoming' && styles.filterButtonTextActive]}>Upcoming</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.filterButton, meetingFilter === 'past' && styles.filterButtonActive]}
+                        onPress={() => setMeetingFilter('past')}
+                      >
+                        <Text style={[styles.filterButtonText, meetingFilter === 'past' && styles.filterButtonTextActive]}>Past</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {getFilteredMeetings().length === 0 ? (
+                    <View style={styles.noMeetingsContainer}>
+                      <Calendar size={32} color={Colors.light.gray} />
+                      <Text style={styles.noMeetingsText}>No meetings found</Text>
+                    </View>
+                  ) : (
+                    getFilteredMeetings().map((meeting) => (
                     <View key={meeting.id} style={styles.meetingCard}>
                       <View style={styles.meetingHeader}>
                         <View style={styles.meetingInfo}>
@@ -937,7 +995,8 @@ export default function DocumentsScreen() {
                         )}
                       </View>
                     </View>
-                  ))}
+                  ))
+                  )}
                 </View>
               </View>
             )}
@@ -2149,5 +2208,33 @@ const styles = StyleSheet.create({
   friendCheckboxSelected: {
     backgroundColor: Colors.light.primary,
     borderColor: Colors.light.primary,
+  },
+  meetingsListHeader: {
+    marginBottom: 16,
+  },
+  meetingFilterContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  filterButtonActive: {
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.textSecondary,
+  },
+  filterButtonTextActive: {
+    color: Colors.light.background,
   },
 });
