@@ -215,6 +215,22 @@ export default function TripsScreen() {
     }
   };
 
+  const handleHotelBooking = async () => {
+    try {
+      const url = 'https://www.booking.com/';
+      const supported = await Linking.canOpenURL(url);
+      
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open Booking.com. Please check if you have a web browser installed.');
+      }
+    } catch (error) {
+      console.error('Error opening Booking.com:', error);
+      Alert.alert('Error', 'Failed to open Booking.com');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -302,7 +318,7 @@ export default function TripsScreen() {
                 <Plane size={24} color={Colors.light.primary} />
                 <Text style={styles.actionText}>Flight</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCard}>
+              <TouchableOpacity style={styles.actionCard} onPress={handleHotelBooking}>
                 <Hotel size={24} color={Colors.light.accent} />
                 <Text style={styles.actionText}>Hotel</Text>
               </TouchableOpacity>
