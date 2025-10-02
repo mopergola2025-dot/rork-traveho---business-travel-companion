@@ -978,7 +978,7 @@ export default function ExpensesScreen() {
               {generatingReport ? (
                 <ActivityIndicator color={Colors.light.background} />
               ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={styles.generateReportButtonContent}>
                   <FileText size={20} color={Colors.light.background} />
                   <Text style={styles.saveButtonText}>Generate PDF Report</Text>
                 </View>
@@ -1530,5 +1530,10 @@ const styles = StyleSheet.create({
   },
   tripStatusTextUpcoming: {
     color: Colors.light.background,
+  },
+  generateReportButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });
