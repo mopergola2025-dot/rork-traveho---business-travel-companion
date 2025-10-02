@@ -263,6 +263,27 @@ export default function TripsScreen() {
     }
   };
 
+  const handleCancelTrip = (tripId: string, destination: string) => {
+    Alert.alert(
+      'Cancel Trip',
+      `Are you sure you want to cancel your trip to ${destination}?`,
+      [
+        {
+          text: 'No',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: () => {
+            setTrips(prevTrips => prevTrips.filter(trip => trip.id !== tripId));
+            Alert.alert('Success', 'Trip cancelled successfully');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -393,7 +414,7 @@ export default function TripsScreen() {
           </View>
 
           {filteredTrips.map((trip) => (
-            <TouchableOpacity key={trip.id} style={styles.tripCard}>
+            <View key={trip.id} style={styles.tripCard}>
               <Image source={{ uri: trip.imageUrl }} style={styles.tripImage} />
               <View style={styles.tripContent}>
                 <View style={styles.tripHeader}>
@@ -453,8 +474,18 @@ export default function TripsScreen() {
                     ))}
                   </View>
                 )}
+                
+                {trip.status === 'upcoming' && (
+                  <TouchableOpacity 
+                    style={styles.cancelButton}
+                    onPress={() => handleCancelTrip(trip.id, trip.destination)}
+                  >
+                    <X size={16} color={Colors.light.danger} />
+                    <Text style={styles.cancelButtonText}>Cancel Trip</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -967,5 +998,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.light.background,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.light.danger,
+    gap: 6,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.danger,
   },
 });
